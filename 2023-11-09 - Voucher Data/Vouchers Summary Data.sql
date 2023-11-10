@@ -1,0 +1,45 @@
+; with vdata as 
+(
+	SELECT 
+		CONTRACT_ID
+		, SV_TRIP_ID
+		, COUNT(*) AS RecCount
+	FROM dbo.ImpVouchers
+	GROUP BY CONTRACT_ID, SV_TRIP_ID
+), sumdata as 
+(
+	SELECT
+		CONTRACT_IDa
+		, SV_TRIP_ID
+		, RecCount
+		, (	SELECT COUNT(*)
+			FROM dbo.ImpVouchers (NOLOCK) 
+			WHERE CONTRACT_ID = v.Contract_ID AND SV_TRIP_ID = v.SV_TRIP_ID
+				AND SUPPLIER_PAYMENT_DATE IS NOT NULL
+		) AS Total_Trips_Paid
+		, (	SELECT COUNT(*)
+			FROM dbo.ImpVouchers (NOLOCK) 
+			WHERE CONTRACT_ID = v.Contract_ID AND SV_TRIP_ID = v.SV_TRIP_ID
+				AND SUPPLIER_PAYMENT_DATE IS NULL
+		) AS Total_Trips_Unpaid
+		--, (	SELECT SUM(CONVERT(decimal(19,6),SUPPLIER_PAYMENT_AMOUNT))
+		--	FROM dbo.ImpVouchers (NOLOCK) 
+		--	WHERE CONTRACT_ID = v.Contract_ID
+		--		AND SV_TRIP_ID = v.SV_TRIP_ID
+		--) AS Total_SUPPLIER_PAYMENT_AMOUNT 
+		, (	SELECT SUM(CONVERT(decimal(19,6),TOTAL_MILES))
+			FROM dbo.ImpVouchers (NOLOCK) 
+			WHERE CONTRACT_ID = v.Contract_ID
+				AND SV_TRIP_ID = v.SV_TRIP_ID
+		) AS Total_Miles 
+		, (	SELECT SUM(CONVERT(decimal(19,6),SUPPLIER_PAYMENT_AMOUNT))
+			FROM dbo.ImpVouchers (NOLOCK) 
+			WHERE CONTRACT_ID = v.Contract_ID
+				AND SV_TRIP_ID = v.SV_TRIP_ID
+		)  AS Total_SUPPLIER_PAYMENT_AMOUNT
+	FROM vdata as v
+)
+SELECT * 
+FROM sumdata
+--WHERE CONTRACT_ID = '357L1'
+ORDER BY CONTRACT_ID, SV_TRIP_ID
